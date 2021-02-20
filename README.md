@@ -8,7 +8,8 @@ This project provides a search functionality to find artist names using FuzzyLog
 
 <br>
 
-### Install the dependencies using the below command, required dependencies are mention in the requirements.txt
+### Install the dependencies using the below command, required dependencies are mention in the requirements.txt, the following instructions are provided to run the application locally.
+
 
 ```python - Make sure to have Python pip installed and configured in your environment variables
     pip install -r requirements.txt
