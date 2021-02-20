@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+      crossorigin="anonymous"
+    />
+    <script
+      src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+      integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+      integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+      integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+      crossorigin="anonymous"
+    ></script>
+
+    <script
+      src="https://code.jquery.com/jquery-3.5.1.js"
+      integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc="
+      crossorigin="anonymous"
+    ></script>
+
+    <style>
+      mark {
+        background-color: transparent;
+        margin: 0;
+        padding: 0;
+        font-weight: 700;
+      }
+
+      input[readonly] {
+        outline: none !important;
+        border: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <br />
+      <br />
+      <h3 class="text-center">Search for Artist</h3>
+      <br />
+      <form id="formArtist">
+        <div class="input-group">
+          <input
+            type="text"
+            name="artist"
+            class="form-control"
+            placeholder="Artist Name"
+          />
+          <div class="input-group-append">
+            <button id="btnSearch" class="btn btn-primary" type="sumbit">
+              Search
+            </button>
+          </div>
+        </div>
+        <input type="hidden" name="limit" value="100" />
+        <input type="hidden" name="skip" value="0" />
+      </form>
+      <div id="result-container" class="container mt-3 mb-2">
+        <div
+          id="result-container-data"
+          class="row"
+          style="height: 50vh; overflow-y: scroll; background-color: lightgrey"
+        ></div>
+        <div class="mt-2">
+          <div class="float-left">
+            <span>
+              Total Data : <input readonly type="text" id="dataTotal" />
+            </span>
+            <span>
+              Data Loaded : <input readonly type="text" id="dataLoaded" />
+            </span>
+          </div>
+          <div class="float-right">
+            <button
+              id="btnClear"
+              onclick="ClearArtist(this,event)"
+              class="btn btn-secondary"
+            >
+              Clear
+            </button>
+            <button
+              id="btnLoadMore"
+              onclick="FetchMoreArtist(this,event)"
+              class="btn btn-primary"
+              disabled
+            >
+              Load More
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+  <script>
+
+    var resetLoadedDataUI = false;
+    $(document).ready(() => {
+      $("#formArtist").submit(function (ev) {
+        FetchArtist(this, ev);
+      });
+    });
+
+    function toggleButtonEnable(jqObject, isEnable) {
+      if (isEnable) {
+        $(jqObject).removeAttr("disabled").removeProp("disabled");
+      } else {
+        $(jqObject).attr("disabled", "disabled").prop("disabled", "disabled");
+      }
+    }
+
+    function FetchArtist(obj, ev) {
+      ev.preventDefault();
+      $("input[name=skip]").val(0);
+      $("input[name=limit]").val(50);
+      resetLoadedDataUI = true;
+      AjaxFetchArtist();
+      toggleButtonEnable($("#btnClear"), true);
+      toggleButtonEnable($("#btnLoadMore"), true);
+    }
+
+    function FetchMoreArtist(obj, ev) {
+      ev.preventDefault();
+      let count = $("#result-container-data").find(".artist-wrapper").length;
+      $("input[name=skip]").val(count);
+      $("input[name=limit]").val(count + 50);
+      resetLoadedDataUI = false;
+      AjaxFetchArtist();
+    }
+
+    function ClearArtist(obj, ev) {
+      ev.preventDefault();
+      $("input[name=skip]").val(0);
+      $("input[name=limit]").val(50);
+      resetLoadedDataUI = true;
+      AppendArtist([], true);
+      toggleButtonEnable($("#btnLoadMore"), false);
+    }
+
+    function AjaxFetchArtist() {
+      $.ajax({
+        url: "/api/artist",
+        method: "POST",
+        data: $("#formArtist").serialize(),
+        error: function (data) {
+          console.log("Error ", data);
+        },
+        success: function (data) {
+          console.log("Succees ", data);
+          AppendArtist(data);
+        },
+      });
+    }
+
+    function AppendArtist(data) {
+      if (!!resetLoadedDataUI) {
+        resetLoadedDataUI = !resetLoadedDataUI;
+        $("#result-container-data").html("");
+      }
+
+      let htmlCode = $("#result-container-data").html();
+      let inital = $("#result-container-data").find(".artist-wrapper").length;
+      let artistList = data.data;
+      let index = 0;
+      let filterName = data.filter.name;
+      if(artistList != null && artistList.length > 0){
+      for (index = 0; index < artistList.length; index++) {
+        htmlCode += `<div class="col-12 col-md-6 col-lg-4 artist-wrapper">`;
+        let counter = index + inital + 1;
+        htmlCode += ` <span class="badge badge-light">${counter}</span>`;
+        let markTxt = artistList[index].replace(
+          filterName,
+          "<mark>" + filterName + "</mark>"
+        );
+        htmlCode += ` <span> ${markTxt} </span>`;
+        htmlCode += `</div>`;
+      }
+     }
+     else{
+      	alert("No data found")
+     }
+
+      $("#result-container-data").html(htmlCode);
+      $("#dataTotal").val(data.allDataCount);
+      $("#dataLoaded").val(index+inital);
+    }
+  </script>
+</html>
